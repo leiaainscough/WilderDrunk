@@ -1,0 +1,44 @@
+body {
+    background: url("/img/background.png");
+}
+
+h1   {
+    color: white;
+    text-align: left;
+    font-family: "Copperplate", monospace;
+    font-weight: bolder;
+    font-size:xx-large;
+}
+
+button {
+    background: url("/img/brick.png"); 
+    height: 90px;
+    width: 150px;
+    border: none;
+    font-weight: bold;
+    font-size: medium;
+    font-family: "Copperplate", monospace;
+}
+
+input {
+    height: 30px;
+    width: 250px;
+}
+
+.divPlayers {
+    font-weight: bold;
+    font-size: x-large;
+    font-family: "Copperplate", monospace; 
+    text-align: center;
+    background: url("img/bg.jpg");
+    height: 350px;
+    width: 250px;
+}
+
+.message {
+    color: black;
+    font-weight: bold;
+    font-size: large;
+    font-family: "Copperplate", monospace;
+    text-align: center;
+}
