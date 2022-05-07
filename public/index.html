@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>WilderDrunk</title>
+</head>
+<body>
+    <h1>WilderDrunk</h1>
+
+
+    <label id = 'lblNick' class = 'message'>Enter your WilderDrunk nickname:</label><br>
+    <input type = 'text' id = 'inpNick' name = 'inpNick'><br>
+    <button id = 'btnSubmit' class = 'btn-center'>Submit</button>
+    
+    <button id = 'btnHome'>Start Again</button>
+    <button id = 'btnJoin' hidden = 'true'>Join Game</button>
+    <button id = 'btnCreate' hidden = 'true'>Create Game</button>
+    <br>
+    <label id = 'lblJoin' hidden = 'true'>Enter your WilderDrunk Join Code:</label><br>
+    <input type = 'text' id = 'inpJoinCode' hidden = 'true'><br>
+    <button id = 'btnJoinSub' hidden = 'true'>Submit</button>
+
+    <button id = 'btnStartGame' hidden = 'true'>Start Game</button>
+    <div id = 'divPlayers' class = 'divPlayers' hidden = 'true'></div>
+        
+    <div id = 'divTurn' class = 'message'></div>
+
+    <button id = 'btnDrawCard' hidden = 'true'>Your Turn!</button>
+
+    <button id = 'btnCompletedCard' hidden = 'true'>Completed Card</button>
+    
+
+    <script>
+        //HTML elements
+        let clientId = null;
+        let gameId = null;
+        let nickname = null;
+        let entered_nick = null;
+        let entered_join = null;
+
+        let ws = new WebSocket("ws://localhost:5555")
+
+
+        const view = {
+            btnHome: document.getElementById("btnHome"),
+
+            lblNick: document.getElementById("lblNick"),
+            inpNick: document.getElementById("inpNick"),
+            btnSubmit: document.getElementById("btnSubmit"),
+
+            btnJoin: document.getElementById("btnJoin"),
+            btnCreate: document.getElementById("btnCreate"),
+
+            lblJoin: document.getElementById("lblJoin"),
+            inpJoinCode: document.getElementById("inpJoinCode"),
+            btnJoinSub: document.getElementById("btnJoinSub"),
+
+            btnStartGame: document.getElementById("btnStartGame"),
+
+            divPlayers: document.getElementById("divPlayers"),
+            divTurn: document.getElementById("divTurn"),
+
+            btnDrawCard: document.getElementById("btnDrawCard"),
+
+            btnCompletedCard: document.getElementById("btnCompletedCard"),
+
+            showImage(card){
+                var img = document.createElement("img");
+                src = ("/img/"+card+".png");
+                img.src = src;
+                img.alt = (card+" card");
+                while(divPlayers.firstChild)divPlayers.removeChild(divPlayers.firstChild);
+                divPlayers.appendChild(img);
+            },
+
+            homeScreen(){
+                inpNick.value = null;
+                lblNick.hidden = false;
+                inpNick.hidden = false;
+                btnSubmit.hidden = false;
+
+                btnJoin.hidden = true;
+                btnCreate.hidden = true;
+                lblJoin.hidden = true;
+                inpJoinCode.hidden = true;
+                btnJoinSub.hidden = true;
+                btnStartGame.hidden = true;
+                btnDrawCard.hidden = true;
+                divPlayers.hidden = true;
+                divTurn.hidden = true;
+                btnCompletedCard.hidden = true;
+            },
+
+            display(message){
+                while(divPlayers.firstChild)divPlayers.removeChild(divPlayers.firstChild);
+                d = document.createElement("div");
+                d.textContent = message;
+                divPlayers.hidden = false;
+                divPlayers.appendChild(d);
+            },
+
+            displayTurn(message){
+                while(divTurn.firstChild)divTurn.removeChild(divTurn.firstChild);
+                const d = document.createElement("div");
+                d.textContent = message;
+                divTurn.hidden = false;
+                divTurn.appendChild(d);
+            }
+        }
+
+        //wiring events
+
+        btnHome.addEventListener("click", e => {
+            view.homeScreen();
+        })
+
+        btnSubmit.addEventListener("click", e => {
+            if (inpNick.value === null || inpNick.value.length > 10){
+                message = "Invalid nickname. Enter between 1 and 10 characters";
+                view.display(message);
+                return
+            }
+            if (entered_nick === null) entered_nick = inpNick.value;
+
+            
+            console.log(entered_nick)
+            const to_send = {
+                "method": "nick",
+                "clientId": clientId,
+                "nickname": entered_nick
+            }
+
+            ws.send(JSON.stringify(to_send));
+        })
+
+        btnCreate.addEventListener("click", e => {
+
+            const to_send = {
+                "method": "create",
+                "clientId": clientId,
+                "nickname": nickname
+            }
+
+            ws.send(JSON.stringify(to_send));
+
+        })
+
+        btnJoin.addEventListener("click", e => {
+
+            btnCreate.hidden = true;
+            btnJoin.hidden = true;
+
+            lblJoin.hidden = false;
+            inpJoinCode.hidden = false;
+            btnJoinSub.hidden = false;
+        })       
+        
+        btnJoinSub.addEventListener("click", e => {
+            if (entered_join === null) entered_join = inpJoinCode.value;
+
+            gameId = inpJoinCode.value;
+            const to_send = {
+                "method": "join",
+                "clientId": clientId,
+                "gameId": entered_join
+            }
+
+            ws.send(JSON.stringify(to_send));
+        }) 
+        
+        btnStartGame.addEventListener("click", e => {
+            btnStartGame.hidden = true;
+            btnDrawCard.hidden = false;
+        }) 
+        
+        btnDrawCard.addEventListener("click", e => {
+            const to_send = {
+                "method": "draw",
+                "clientId": clientId,
+                "gameId": gameId
+            }
+
+            btnStartGame.hidden = true;
+            ws.send(JSON.stringify(to_send));
+        })
+        
+        btnCompletedCard.addEventListener("click", e => {
+            const to_send = {
+                "method": "next",
+                "clientId": clientId,
+                "gameId": gameId
+            }
+            btnCompletedCard.hidden = true;
+            ws.send(JSON.stringify(to_send));
+        })
+
+        ws.onmessage = message => {
+            //message.data
+            const response = JSON.parse(message.data);
+            //connect
+            if (response.method === "connect"){
+                clientId = response.clientId;
+                console.log("Client id Set successfully " + clientId)
+            }
+
+            if (response.method === "nick"){
+                player = response.client;
+                console.log("Player created. Nickname: " + player)  
+                lblNick.hidden = true;
+                inpNick.hidden = true;
+                btnSubmit.hidden = true;
+
+                btnCreate.hidden = false;
+                btnJoin.hidden = false;
+            }
+            
+            if (response.method === "create"){
+                gameId = response.gameId;
+                message = ("Share this join code with friends: " + gameId);
+                view.display(message);
+
+                btnJoin.hidden = true;
+                btnCreate.hidden = true;
+                btnStartGame.hidden = false;
+            }
+
+            //join
+            if (response.method === "join"){
+                const game_state = response.message;
+
+                if (game_state === "invalid"){
+                    message = "This game does not exist! Start Again!";
+                } else if (game_state === "full"){
+                    message = "This game is full! Start Again!";
+                } else {
+                    message = "You're in! Wait until the game is started!"
+                }
+
+                view.display(message);
+                btnJoinSub.hidden = true;
+                inpJoinCode.hidden = true;
+                lblJoin.hidden = true;
+            }     
+
+            if (response.method === "new_player"){
+                message = "New player has joined: "+ response.nickname;
+
+                view.display(message);
+            }
+            
+            if (response.method === "draw"){
+                console.log("Received play");
+                const card = response.random_card;
+                const turn = response.turn;
+                const current_player = response.player;
+                if (card === undefined){
+                    message = "No more cards - Game over! Start again!"
+                    view.display(message);
+                    btnDrawCard.hidden = true;
+                    return;
+                }
+                view.showImage(card);
+                divPlayers.hidden = false;
+                
+                if (turn === "true"){
+                    divTurn.hidden = true;
+                    btnDrawCard.hidden = true;
+                    btnCompletedCard.hidden = false;
+                }
+
+                if (turn === "false"){
+                    message = ("Hold Tight... it's "+ current_player +" turn");
+                    view.displayTurn(message);
+                    divTurn.hidden = false;
+                    btnCompletedCard.hidden = true;
+                }
+            }
+
+            if (response.method === "next"){
+                const nextclient = response.client;
+                const gameId = response.gameId;
+
+                console.log(nextclient)
+                if (nextclient === clientId){
+                    btnDrawCard.hidden = false;
+                }
+            }
+        }
+
+    </script>
+</body>
+</html>
